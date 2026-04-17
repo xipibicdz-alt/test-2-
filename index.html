@@ -166,9 +166,6 @@ body { display: flex; flex-direction: column; position: relative; }
 .custom-scrollbar.visible { opacity: 1; pointer-events: auto; }
 .scrollbar-thumb { position: absolute; right: 2px; width: 6px; height: 50px; background: #3a9affcc; backdrop-filter: blur(4px); border-radius: 20px; box-shadow: 0 0 18px #0088ff; border: 1px solid #aad0ff; cursor: pointer; transition: width 0.1s, background 0.1s; }
 .scrollbar-thumb:hover, .scrollbar-thumb.dragging { width: 8px; background: #66bbff; }
-
-/* input مخفي للصور (يستخدم برمجياً) */
-#hiddenImageInput { display: none; }
 </style>
 </head>
 <body>
@@ -211,9 +208,6 @@ body { display: flex; flex-direction: column; position: relative; }
   </div>
   <nav class="bottom-nav" id="bottomNav"><button class="nav-item" data-page="chat"><span>💬</span>محادثة</button><button class="nav-item" data-page="gallery"><span>🖼️</span>معرض</button></nav>
   <button class="toggle-nav-btn" id="toggleNavBtn">👁️</button>
-
-  <!-- Input مخفي لاختيار الصور (يدعم multiple) -->
-  <input type="file" id="hiddenImageInput" accept="image/*" multiple style="display: none;">
 
   <div class="modal-overlay" id="groupModal">
     <div class="modal-sheet">
@@ -306,7 +300,7 @@ function renderGroups(){
   document.querySelectorAll('.card-del').forEach(d=>{ d.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('حذف المجموعة؟')) deleteGroup(d.dataset.del); }); });
 }
 
-const modal=document.getElementById('groupModal'), nameInp=document.getElementById('groupNameInput'), previewGrid=document.getElementById('previewGrid'), emptyMsg=document.getElementById('emptyPreviewMsg'), addBtn=document.getElementById('addImageBtn'), hiddenInput=document.getElementById('hiddenImageInput'), saveBtn=document.getElementById('saveGroupBtn'), cancelBtn=document.getElementById('cancelGroupBtn'), createBtn=document.getElementById('createGroupBtn');
+const modal=document.getElementById('groupModal'), nameInp=document.getElementById('groupNameInput'), previewGrid=document.getElementById('previewGrid'), emptyMsg=document.getElementById('emptyPreviewMsg'), addBtn=document.getElementById('addImageBtn'), saveBtn=document.getElementById('saveGroupBtn'), cancelBtn=document.getElementById('cancelGroupBtn'), createBtn=document.getElementById('createGroupBtn');
 function closeModal(){ modal.classList.remove('open'); tempImages=[]; }
 createBtn.addEventListener('click', ()=>{ tempImages=[]; nameInp.value=''; updatePreview(); modal.classList.add('open'); });
 cancelBtn.addEventListener('click', closeModal);
@@ -319,32 +313,67 @@ function updatePreview(){
   document.querySelectorAll('.preview-del').forEach(b=>{ b.addEventListener('click', e=>{ e.stopPropagation(); tempImages.splice(b.dataset.index,1); updatePreview(); }); });
 }
 
-// فتح نافذة اختيار الصور (متعدد) عند النقر على زر "إضافة صورة"
-addBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  // تنظيف قيمة الـ input للسماح باختيار نفس الملفات مرة أخرى
-  hiddenInput.value = '';
-  hiddenInput.click();
-});
+// دالة موثوقة لفتح نافذة اختيار الصور (تعمل في أي بيئة)
+function openImageSelector() {
+  return new Promise((resolve, reject) => {
+    // إنشاء input جديد في كل مرة لضمان التوافق
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true; // السماح باختيار عدة صور
+    
+    // إضافة input مؤقتًا للصفحة
+    input.style.position = 'fixed';
+    input.style.top = '-100px';
+    input.style.left = '0';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+    document.body.appendChild(input);
+    
+    // معالجة اختيار الملفات
+    input.onchange = (e) => {
+      const files = Array.from(input.files);
+      document.body.removeChild(input);
+      resolve(files);
+    };
+    
+    // معالجة إلغاء الاختيار
+    input.oncancel = () => {
+      document.body.removeChild(input);
+      reject(new Error('تم إلغاء الاختيار'));
+    };
+    
+    // محاولة فتح النافذة مع تأخير بسيط لضمان الجاهزية
+    setTimeout(() => {
+      try {
+        input.click();
+      } catch (err) {
+        document.body.removeChild(input);
+        reject(err);
+      }
+    }, 50);
+  });
+}
 
-// معالجة الصور المختارة
-hiddenInput.addEventListener('change', async (e) => {
-  const files = Array.from(hiddenInput.files);
-  if (!files.length) return;
-  
-  setLoader(20);
+addBtn.addEventListener('click', async (e) => {
+  e.stopPropagation();
   try {
+    const files = await openImageSelector();
+    if (!files.length) return;
+    
+    setLoader(20);
     for (const file of files) {
       const b64 = await fileToBase64(file);
       tempImages.push(b64);
     }
     updatePreview();
     toast(`تمت إضافة ${files.length} صورة`);
+    setLoader(100);
   } catch (err) {
-    toast('فشل تحميل الصور');
+    if (err.message !== 'تم إلغاء الاختيار') {
+      toast('تعذر فتح نافذة الصور');
+    }
   }
-  setLoader(100);
-  hiddenInput.value = ''; // تنظيف
 });
 
 saveBtn.addEventListener('click', async ()=>{
