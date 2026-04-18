@@ -170,10 +170,8 @@ body { display: flex; flex-direction: column; position: relative; }
 .v-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 18px; display: flex; gap: 12px; background: linear-gradient(to top, #000000dd, transparent); }
 .v-nav { width: 54px; height: 54px; border-radius: 40px; background: transparent; border: none; color: #aad0ff; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .v-nav:disabled { opacity: 0.3; }
-.v-strip { flex: 1; display: flex; gap: 8px; overflow-x: auto; padding: 0 6px; scrollbar-width: none; }
-.v-strip::-webkit-scrollbar { display: none; }
-.v-thumb { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; border: 2.5px solid transparent; opacity: 0.55; cursor: pointer; }
-.v-thumb.active { opacity: 1; border-color: #00aaff; transform: scale(1.08); }
+.v-strip { display: none; }
+.v-thumb { display: none; }
 
 /* --- حوار إنشاء مجموعة --- */
 .modal-overlay { position: fixed; inset: 0; z-index: 2000; background: #000000cc; backdrop-filter: blur(8px); display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: 0.25s; }
